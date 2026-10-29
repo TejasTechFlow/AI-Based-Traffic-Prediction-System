@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Prediction history{% endblock %}
+{% block content %}
+<div class="page-head d-flex flex-wrap justify-content-between align-items-end gap-2">
+  <div><h2>Prediction history</h2><p>Every prediction made on this installation is saved locally in SQLite.</p></div>
+  <div class="d-flex gap-2 no-print"><a class="btn btn-soft" id="exportBtn" href="/api/history/export.csv"><i class="bi bi-filetype-csv me-1"></i>Export CSV</a>
+    <button class="btn btn-soft text-danger" id="clearBtn"><i class="bi bi-trash me-1"></i>Clear</button></div>
+</div>
+<form class="card-x mb-3" id="hf" novalidate><div class="card-body-x pt-3"><div class="row g-3 align-items-end">
+  <div class="col-md-4"><label class="form-label" for="h_q">Search</label><input class="form-control" id="h_q" name="q" placeholder="Date, weather, day, category, volume…"></div>
+  <div class="col-6 col-md-2"><label class="form-label" for="h_c">Category</label><select class="form-select" id="h_c" name="category"><option value="">All</option>{% for c in categories %}<option>{{ c }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-2"><label class="form-label" for="h_s">Travel date from</label><input type="date" class="form-control" id="h_s" name="start"></div>
+  <div class="col-6 col-md-2"><label class="form-label" for="h_e">to</label><input type="date" class="form-control" id="h_e" name="end"></div>
+  <div class="col-6 col-md-2 d-flex gap-2"><button class="btn btn-primary flex-fill" type="submit">Filter</button><button class="btn btn-soft" type="button" id="hReset">Reset</button></div>
+</div></div></form>
+<div class="card-x"><div class="card-body-x table-responsive pt-3">
+  <table class="table table-x"><thead><tr><th>Predicted at</th><th>Travel date</th><th>Hour</th><th>Day</th><th>Holiday</th><th>Weather</th><th class="text-end">Temp °C</th><th class="text-end">Volume (veh/h)</th><th>Category</th></tr></thead>
+  <tbody id="hBody"><tr><td colspan="9" class="text-center text-muted py-4">Loading…</td></tr></tbody></table>
+</div><div class="px-4 pb-3 hint" id="hCount"></div></div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/history.js') }}"></script>{% endblock %}

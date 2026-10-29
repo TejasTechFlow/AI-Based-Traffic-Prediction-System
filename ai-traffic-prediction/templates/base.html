@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Dashboard{% endblock %} · AI Traffic Prediction</title>
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.svg') }}" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="scrim" id="scrim"></div>
+<aside class="app-sidebar" id="sidebar">
+  <a class="brand" href="{{ url_for('index') }}">
+    <span class="brand-mark"><i class="bi bi-sign-turn-right-fill"></i></span>
+    <span>TrafficAI<small>Traffic prediction system</small></span>
+  </a>
+  <nav class="side-nav nav flex-column">
+    <a class="nav-link {{ 'active' if active=='home' }}" href="{{ url_for('index') }}"><i class="bi bi-house"></i>Home</a>
+    <a class="nav-link {{ 'active' if active=='dashboard' }}" href="{{ url_for('dashboard_page') }}"><i class="bi bi-grid-1x2"></i>Dashboard</a>
+    <a class="nav-link {{ 'active' if active=='predict' }}" href="{{ url_for('prediction_page') }}"><i class="bi bi-lightning-charge"></i>Predict traffic</a>
+    <a class="nav-link {{ 'active' if active=='analytics' }}" href="{{ url_for('analytics_page') }}"><i class="bi bi-bar-chart-line"></i>Analytics</a>
+    <a class="nav-link {{ 'active' if active=='performance' }}" href="{{ url_for('performance_page') }}"><i class="bi bi-cpu"></i>Model performance</a>
+    <a class="nav-link {{ 'active' if active=='history' }}" href="{{ url_for('history_page') }}"><i class="bi bi-clock-history"></i>History</a>
+  </nav>
+  <div class="side-foot">
+    <div class="mb-1"><i class="bi bi-info-circle"></i> Forecasts &amp; historical data only. No live traffic feed.</div>
+  </div>
+</aside>
+
+<div class="app-main">
+  <header class="topbar">
+    <button class="btn btn-soft d-lg-none px-2 py-1" id="menuBtn" aria-label="Open menu"><i class="bi bi-list fs-5"></i></button>
+    <h1>{% block heading %}{{ self.title() }}{% endblock %}</h1>
+    <div class="ms-auto d-flex gap-2 flex-wrap justify-content-end">
+      {% if model_ready %}
+        {% if synthetic %}<span class="pill pill-warn" title="{{ dataset_label }}"><i class="bi bi-exclamation-triangle"></i><span class="d-none d-sm-inline">Synthetic sample data</span><span class="d-sm-none">Sample</span></span>
+        {% else %}<span class="pill pill-ok"><i class="bi bi-database-check"></i><span class="d-none d-sm-inline">Historical dataset</span></span>{% endif %}
+        <span class="pill pill-info d-none d-md-inline-flex"><i class="bi bi-cpu"></i>{{ meta.algorithm }}</span>
+      {% else %}
+        <span class="pill pill-warn"><i class="bi bi-exclamation-triangle"></i>Model not trained</span>
+      {% endif %}
+    </div>
+  </header>
+  <main class="page">
+    {% if not model_ready and active != 'home' %}
+    <div class="notice notice-warn mb-3"><i class="bi bi-exclamation-triangle-fill"></i>
+      <div><strong>No trained model found.</strong> Run <code>python src/train_model.py</code> in the project folder, then reload this page.</div></div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>window.CATEGORY_COLORS = {{ colors|tojson }}; window.CATEGORIES = {{ categories|tojson }};</script>
+<script src="{{ url_for('static', filename='js/common.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

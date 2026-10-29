@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block heading %}AI-Based Traffic Prediction System{% endblock %}
+{% block content %}
+<section class="hero mb-4">
+  <div class="row align-items-center g-4">
+    <div class="col-lg-6">
+      <span class="pill pill-info mb-3"><i class="bi bi-stars"></i>Machine-learning forecasts</span>
+      <h2 class="mb-3">Know how busy the road will be <span style="color:var(--primary)">before you travel</span>.</h2>
+      <p class="lead mb-4">A regression model learns hourly traffic patterns from historical data and forecasts traffic volume for any date, hour and weather you choose - then translates it into a congestion level and travel advice.</p>
+      <div class="d-flex flex-wrap gap-2">
+        <a href="{{ url_for('prediction_page') }}" class="btn btn-primary btn-lg-x"><i class="bi bi-lightning-charge-fill me-1"></i>Predict Traffic</a>
+        <a href="{{ url_for('dashboard_page') }}" class="btn btn-soft btn-lg-x"><i class="bi bi-grid-1x2 me-1"></i>Explore Dashboard</a>
+      </div>
+      {% if model_ready and synthetic %}
+      <p class="hint mt-3 mb-0"><i class="bi bi-exclamation-triangle"></i> Demo mode: the bundled dataset is <strong>synthetic sample data</strong>, not real measurements.</p>
+      {% endif %}
+    </div>
+    <div class="col-lg-6">
+      <!-- original illustration: analytics card + road -->
+      <svg viewBox="0 0 560 380" class="w-100" role="img" aria-label="Illustration of a traffic analytics dashboard above a road with cars">
+        <defs><linearGradient id="g1" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2563eb" stop-opacity=".22"/><stop offset="1" stop-color="#2563eb" stop-opacity="0"/></linearGradient></defs>
+        <rect x="20" y="14" width="520" height="236" rx="18" fill="#fff" stroke="#e5e9f0"/>
+        <rect x="42" y="36" width="96" height="10" rx="5" fill="#cbd5e1"/>
+        <rect x="42" y="54" width="60" height="8" rx="4" fill="#e2e8f0"/>
+        <g font-family="Inter,sans-serif" font-size="11" fill="#64748b">
+          <rect x="360" y="32" width="64" height="24" rx="12" fill="#eaf1ff"/><text x="372" y="48" fill="#2563eb" font-weight="600">Forecast</text>
+          <rect x="432" y="32" width="86" height="24" rx="12" fill="#f1f5f9"/><text x="444" y="48">Historical</text>
+        </g>
+        <g stroke="#eef1f6"><line x1="42" x2="518" y1="100" y2="100"/><line x1="42" x2="518" y1="140" y2="140"/><line x1="42" x2="518" y1="180" y2="180"/><line x1="42" x2="518" y1="220" y2="220"/></g>
+        <path d="M42 205 C 90 200,110 120,150 112 S 215 170,250 160 S 320 92,360 96 S 430 170,470 150 S 505 130,518 126 L518 220 L42 220Z" fill="url(#g1)"/>
+        <path d="M42 205 C 90 200,110 120,150 112 S 215 170,250 160 S 320 92,360 96" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
+        <path d="M360 96 C 400 100,430 170,470 150 S 505 130,518 126" fill="none" stroke="#7c3aed" stroke-width="3" stroke-dasharray="6 6" stroke-linecap="round"/>
+        <circle cx="360" cy="96" r="6" fill="#fff" stroke="#2563eb" stroke-width="3"/>
+        <g><rect x="42" y="226" width="14" height="0" /></g>
+        <rect x="20" y="276" width="520" height="84" rx="18" fill="#334155"/>
+        <g stroke="#fff" stroke-width="3" stroke-dasharray="22 16" opacity=".75"><line x1="40" x2="520" y1="318" y2="318"/></g>
+        <g><rect x="70" y="290" width="62" height="24" rx="8" fill="#2563eb"/><rect x="82" y="283" width="36" height="14" rx="6" fill="#93b4f5"/><circle cx="86" cy="316" r="5" fill="#0f172a"/><circle cx="118" cy="316" r="5" fill="#0f172a"/></g>
+        <g><rect x="230" y="326" width="62" height="24" rx="8" fill="#0d9488"/><rect x="242" y="319" width="36" height="14" rx="6" fill="#7fd1c8"/><circle cx="246" cy="352" r="5" fill="#0f172a"/><circle cx="278" cy="352" r="5" fill="#0f172a"/></g>
+        <g><rect x="400" y="290" width="62" height="24" rx="8" fill="#f97316"/><rect x="412" y="283" width="36" height="14" rx="6" fill="#fbc08e"/><circle cx="416" cy="316" r="5" fill="#0f172a"/><circle cx="448" cy="316" r="5" fill="#0f172a"/></g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4"><div class="card-x feature"><div class="ico ico-blue"><i class="bi bi-cpu"></i></div><h3>AI traffic prediction</h3>
+    <p>Compare Linear Regression, Random Forest and Gradient Boosting; the best model on time-series validation makes the forecast.</p></div></div>
+  <div class="col-md-4"><div class="card-x feature"><div class="ico ico-orange"><i class="bi bi-traffic-cone"></i></div><h3>Congestion analysis</h3>
+    <p>Predicted volume becomes Low, Moderate, High or Severe using documented thresholds, with a clear 24-hour profile.</p></div></div>
+  <div class="col-md-4"><div class="card-x feature"><div class="ico ico-teal"><i class="bi bi-graph-up-arrow"></i></div><h3>Traffic trends</h3>
+    <p>Filterable hourly, weekly, monthly and weather analytics reveal peak hours and weekday-versus-weekend patterns.</p></div></div>
+</div>
+
+<div class="card-x mb-4"><div class="card-head"><div><h3>How the system works</h3><div class="sub">From historical records to a forecast you can act on</div></div></div>
+  <div class="card-body-x"><div class="row g-4">
+    {% for n, t, d in [
+      (1,'Collect &amp; clean','Historical hourly traffic is loaded, de-duplicated and cleaned of impossible sensor values.'),
+      (2,'Engineer features','Date and time become hour, weekday, season and holiday signals; weather is encoded.'),
+      (3,'Train &amp; validate','Models are compared with a chronological split so the test data is always newer than the training data.'),
+      (4,'Predict &amp; advise','Your inputs go through the saved pipeline; the result is shown with a congestion level and advice.')] %}
+    <div class="col-md-6 col-xl-3 d-flex gap-3"><div class="step-num">{{ n }}</div><div><strong>{{ t|safe }}</strong><div class="text-muted small mt-1">{{ d|safe }}</div></div></div>
+    {% endfor %}
+  </div></div></div>
+
+<div class="notice notice-info"><i class="bi bi-info-circle-fill"></i><div>{{ disclaimer }} The dashboard shows <strong>historical data and model forecasts</strong> - it is never presented as live traffic.</div></div>
+{% endblock %}

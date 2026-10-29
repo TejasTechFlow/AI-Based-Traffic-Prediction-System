@@ -1,0 +1,6 @@
+{
+  "synthetic": true,
+  "sha256": "9cc8e92fc79b006eb2a4a32e873b10fbc168a3e55e4cad968c41af9dc3da9f93",
+  "rows": 50826,
+  "description": "SYNTHETIC sample data (flagged as synthetic by the earlier data_source.json). Not real measurements."
+}

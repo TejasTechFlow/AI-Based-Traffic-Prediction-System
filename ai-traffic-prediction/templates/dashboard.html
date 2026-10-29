@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head d-flex flex-wrap justify-content-between align-items-end gap-2">
+  <div><h2>Traffic dashboard</h2><p>Historical records and model forecasts for the monitored road segment.</p></div>
+  <span class="pill pill-info" id="rangePill"><i class="bi bi-calendar3"></i>Loading…</span>
+</div>
+<div class="notice notice-info mb-3"><i class="bi bi-info-circle-fill"></i>
+  <div><strong>Not live traffic.</strong> “Latest recorded” values come from the historical dataset{% if synthetic %} (<strong>synthetic sample data</strong>){% endif %};
+  “Forecast” values are produced by the trained model.</div></div>
+<div id="dashError"></div>
+
+<div class="row g-3 mb-3">
+  <div class="col-sm-6 col-xl-3"><div class="card-x kpi"><div class="label"><i class="bi bi-clock-history ico-blue"></i>Latest recorded (historical)</div>
+    <div class="value" id="kLatest">–<small> veh/h</small></div><div class="note" id="kLatestNote">&nbsp;</div></div></div>
+  <div class="col-sm-6 col-xl-3"><div class="card-x kpi"><div class="label"><i class="bi bi-lightning-charge ico-purple"></i>Forecast: next hour</div>
+    <div class="value" id="kPred">–<small> veh/h</small></div><div class="note" id="kPredNote">&nbsp;</div></div></div>
+  <div class="col-sm-6 col-xl-3"><div class="card-x kpi"><div class="label"><i class="bi bi-speedometer2 ico-orange"></i>Forecast congestion level</div>
+    <div class="value" id="kCong" style="font-size:1.5rem">–</div><div class="meter mt-2"><span id="kMeter" style="width:0"></span></div><div class="note" id="kCongNote">Relative to the dataset's volume bands</div></div></div>
+  <div class="col-sm-6 col-xl-3"><div class="card-x kpi"><div class="label"><i class="bi bi-bar-chart ico-teal"></i>Average volume</div>
+    <div class="value" id="kAvg">–<small> veh/h</small></div><div class="note" id="kPeak">&nbsp;</div></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-xl-8"><div class="card-x h-100"><div class="card-head"><div><h3>Traffic volume over time</h3><div class="sub">Last 7 days of the historical dataset (hourly)</div></div></div>
+    <div class="card-body-x"><div class="chart-box tall"><canvas id="chLine"></canvas></div></div></div></div>
+  <div class="col-xl-4"><div class="card-x h-100"><div class="card-head"><div><h3>Congestion categories</h3><div class="sub">Share of all recorded hours</div></div></div>
+    <div class="card-body-x"><div class="chart-box tall"><canvas id="chDonut"></canvas></div></div></div></div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-xl-6"><div class="card-x h-100"><div class="card-head"><div><h3>Average traffic by hour</h3><div class="sub">Peak hours highlighted</div></div></div>
+    <div class="card-body-x"><div class="chart-box"><canvas id="chHour"></canvas></div></div></div></div>
+  <div class="col-xl-6"><div class="card-x h-100"><div class="card-head"><div><h3>Historical vs predicted</h3><div class="sub">Final week of the held-out test period - actual vs model</div></div></div>
+    <div class="card-body-x"><div class="chart-box"><canvas id="chHvP"></canvas></div></div></div></div>
+</div>
+<div class="row g-3">
+  <div class="col-xl-6"><div class="card-x h-100"><div class="card-head"><div><h3>Daily trend</h3><div class="sub">Average hourly volume per day, last 30 days of data</div></div></div>
+    <div class="card-body-x"><div class="chart-box short"><canvas id="chDaily"></canvas></div></div></div></div>
+  <div class="col-xl-6"><div class="card-x h-100"><div class="card-head"><div><h3>Weekly trend</h3><div class="sub">Average hourly volume by day of week</div></div></div>
+    <div class="card-body-x"><div class="chart-box short"><canvas id="chWeek"></canvas></div></div></div></div>
+</div>
+<p class="hint mt-3">{{ disclaimer }}</p>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>{% endblock %}

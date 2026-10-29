@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Model performance{% endblock %}
+{% block content %}
+<div class="page-head"><h2>Model performance</h2><p>Every figure here is read from the training run's saved results (<code>models/model_metadata.json</code>).</p></div>
+<div id="perfError"></div>
+<div id="perfBody" style="display:none">
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-xl-3"><div class="card-x kpi"><div class="label"><i class="bi bi-cpu ico-blue"></i>Selected algorithm</div><div class="value" id="pAlgo" style="font-size:1.35rem">–</div><div class="note" id="pRule">&nbsp;</div></div></div>
+    <div class="col-6 col-xl-3"><div class="card-x kpi"><div class="label"><i class="bi bi-database ico-teal"></i>Training dataset</div><div class="value" id="pRows">–<small> rows</small></div><div class="note" id="pSplit">&nbsp;</div></div></div>
+    <div class="col-6 col-xl-3"><div class="card-x kpi"><div class="label"><i class="bi bi-rulers ico-purple"></i>MAE / RMSE (test)</div><div class="value" id="pErr" style="font-size:1.45rem">–</div><div class="note">vehicles per hour</div></div></div>
+    <div class="col-6 col-xl-3"><div class="card-x kpi"><div class="label"><i class="bi bi-bullseye ico-orange"></i>R² score (test)</div><div class="value" id="pR2">–</div><div class="note" id="pTrained">&nbsp;</div></div></div>
+  </div>
+
+  <div class="notice notice-info mb-3" id="pDatasetNote"></div>
+
+  <div class="card-x mb-3"><div class="card-head"><div><h3>Algorithm comparison</h3><div class="sub">Models are selected on cross-validated RMSE (training data only); the test set is used once, for reporting.</div></div></div>
+    <div class="card-body-x table-responsive"><table class="table table-x"><thead><tr>
+      <th>Model</th><th class="text-end">CV RMSE</th><th class="text-end">Test MAE</th><th class="text-end">Test RMSE</th><th class="text-end">Test R²</th><th class="text-end">Train R²</th><th></th></tr></thead><tbody id="pTable"></tbody></table></div></div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-xl-8"><div class="card-x h-100"><div class="card-head"><div><h3>Actual vs predicted</h3>
+      <div class="sub">Held-out test period (newer than all training data)</div></div>
+      <div class="btn-group btn-group-sm" role="group" id="avpSwitch">
+        <button class="btn btn-soft active" data-v="week">Last week</button><button class="btn btn-soft" data-v="daily">Daily avg</button><button class="btn btn-soft" data-v="scatter">Scatter</button></div></div>
+      <div class="card-body-x"><div class="chart-box tall"><canvas id="pAvp"></canvas></div></div></div></div>
+    <div class="col-xl-4"><div class="card-x h-100"><div class="card-head"><div><h3>Feature importance</h3><div class="sub">Rise in RMSE when a feature is shuffled (permutation importance)</div></div></div>
+      <div class="card-body-x"><div class="chart-box tall"><canvas id="pImp"></canvas></div></div></div></div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-lg-6"><div class="card-x h-100"><div class="card-head"><div><h3>Data preparation</h3></div></div><div class="card-body-x"><ul class="mb-0 small" id="pClean"></ul></div></div></div>
+    <div class="col-lg-6"><div class="card-x h-100"><div class="card-head"><div><h3>Congestion thresholds</h3><div class="sub" id="pThSrc"></div></div></div><div class="card-body-x"><div id="pTh" class="d-grid gap-2"></div>
+      <div class="hint mt-2">{{ disclaimer }}</div></div></div></div>
+  </div>
+
+  <div class="card-x no-print"><div class="card-head"><div><h3>Retrain with your own data</h3><div class="sub">Upload a CSV with at least <code>date_time</code> and <code>traffic_volume</code>; optional: <code>holiday, temp, rain_1h, snow_1h, clouds_all, weather_main</code>. Files are parsed as data only.</div></div></div>
+    <div class="card-body-x">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-6"><label class="form-label" for="upFile">CSV file (max {{ max_mb }} MB)</label><input class="form-control" type="file" id="upFile" accept=".csv,text/csv"></div>
+        <div class="col-md-6 d-flex flex-wrap gap-2">
+          <button class="btn btn-soft" id="upBtn"><i class="bi bi-upload me-1"></i>Validate upload</button>
+          <button class="btn btn-primary" id="retrainBtn" disabled><i class="bi bi-arrow-repeat me-1"></i>Retrain with this file</button>
+          <button class="btn btn-soft" id="retrainCurrent"><i class="bi bi-arrow-clockwise me-1"></i>Retrain current data</button></div>
+      </div>
+      <div id="upMsg" class="mt-3"></div>
+    </div></div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/performance.js') }}"></script>{% endblock %}

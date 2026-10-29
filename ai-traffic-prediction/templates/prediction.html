@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Predict traffic{% endblock %}
+{% block content %}
+{% set sup = meta.supported_inputs if model_ready else {} %}
+<div class="page-head"><h2>Traffic prediction</h2><p>Choose a date, time and conditions. Your inputs run through the trained model pipeline - nothing is pre-filled or hard-coded.</p></div>
+
+<div class="row g-3">
+  <div class="col-xl-5">
+    <form id="predForm" class="card-x" novalidate>
+      <div class="card-head"><div><h3>Trip conditions</h3><div class="sub">All fields are validated before prediction</div></div></div>
+      <div class="card-body-x">
+        <div class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+          <span class="hint m-0"><i class="bi bi-easel"></i> Sample mode:</span>
+          <div id="samples" class="d-flex flex-wrap gap-1"></div>
+        </div>
+        <div class="row g-3">
+          <div class="col-sm-6"><label class="form-label" for="f_date">Date</label>
+            <input type="date" class="form-control" id="f_date" name="date" value="{{ today }}" required>
+            <div class="invalid-feedback"></div></div>
+          <div class="col-sm-6"><label class="form-label" for="f_hour">Hour of the day</label>
+            <select class="form-select" id="f_hour" name="hour" required>
+              {% for h in range(24) %}<option value="{{ h }}" {{ 'selected' if h == 8 }}>{{ '%02d:00'|format(h) }}{{ ' (midnight)' if h == 0 }}{{ ' (noon)' if h == 12 }}</option>{% endfor %}
+            </select><div class="invalid-feedback"></div></div>
+          <div class="col-sm-6"><label class="form-label" for="f_dow">Day of the week</label>
+            <input type="text" class="form-control" id="f_dow" name="day_of_week" readonly tabindex="-1" style="background:var(--surface-2)">
+            <div class="hint">Set automatically from the date</div><div class="invalid-feedback"></div></div>
+          <div class="col-sm-6"><label class="form-label d-block">Holiday status</label>
+            <div class="form-check form-switch mt-2"><input class="form-check-input" type="checkbox" role="switch" id="f_holiday" name="holiday" {{ '' if sup.get('holiday', True) else 'disabled' }}>
+              <label class="form-check-label" for="f_holiday">Public holiday</label></div>
+            <div class="hint">Holidays usually reduce commuter traffic</div></div>
+          {% if sup.get('weather', True) %}
+          <div class="col-sm-6"><label class="form-label" for="f_weather">Weather condition</label>
+            <select class="form-select" id="f_weather" name="weather_main">
+              {% for w in (meta.weather_options if model_ready else []) %}<option value="{{ w }}" {{ 'selected' if w == 'Clear' }}>{{ w }}</option>{% endfor %}
+            </select><div class="invalid-feedback"></div></div>
+          {% endif %}
+          {% if sup.get('temperature', True) %}
+          <div class="col-sm-6"><label class="form-label" for="f_temp">Temperature (°C)</label>
+            <input type="number" step="0.1" class="form-control" id="f_temp" name="temperature_c" value="12" required>
+            <div class="invalid-feedback"></div></div>
+          {% endif %}
+          <div class="col-12"><label class="form-label" for="f_loc">Road segment / location</label>
+            <select class="form-select" id="f_loc" disabled><option>Monitored interstate segment (only one in the dataset)</option></select>
+            <div class="hint">The dataset has no location column, so location-specific predictions are not offered.</div></div>
+          {% if sup.get('precipitation') or sup.get('clouds') %}
+          <div class="col-12"><a class="small fw-semibold text-decoration-none" data-bs-toggle="collapse" href="#adv" role="button"><i class="bi bi-sliders"></i> Optional weather details</a>
+            <div class="collapse mt-2" id="adv"><div class="row g-3">
+              {% if sup.get('precipitation') %}
+              <div class="col-4"><label class="form-label" for="f_rain">Rain (mm/h)</label><input type="number" min="0" step="0.1" class="form-control" id="f_rain" name="rain_1h" placeholder="auto"><div class="invalid-feedback"></div></div>
+              <div class="col-4"><label class="form-label" for="f_snow">Snow (mm/h)</label><input type="number" min="0" step="0.1" class="form-control" id="f_snow" name="snow_1h" placeholder="auto"><div class="invalid-feedback"></div></div>
+              {% endif %}
+              {% if sup.get('clouds') %}
+              <div class="col-4"><label class="form-label" for="f_clouds">Clouds (%)</label><input type="number" min="0" max="100" step="1" class="form-control" id="f_clouds" name="clouds_all" placeholder="auto"><div class="invalid-feedback"></div></div>
+              {% endif %}
+              <div class="col-12 hint mt-0">Left blank, these use simple defaults based on the weather condition (shown with the result).</div>
+            </div></div></div>
+          {% endif %}
+        </div>
+        <div id="formError" class="mt-3"></div>
+        <button type="submit" class="btn btn-primary btn-lg-x w-100 mt-3" id="predBtn" {{ '' if model_ready else 'disabled' }}><i class="bi bi-lightning-charge-fill me-1"></i>Predict Traffic</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="col-xl-7">
+    <div class="card-x h-100">
+      <div class="card-head"><div><h3>Prediction result</h3><div class="sub"><span class="pill pill-info py-0"><i class="bi bi-magic"></i>Model forecast - not live traffic</span></div></div></div>
+      <div class="card-body-x">
+        <div id="resEmpty" class="result-empty"><i class="bi bi-signpost-split"></i>Fill in the form and press <strong>Predict Traffic</strong> to see the forecast.</div>
+        <div id="resLoading" class="spinner-wrap"><div class="spinner-border text-primary" role="status"></div><span>Running the model…</span></div>
+        <div id="resBody" style="display:none">
+          <div class="row g-3 align-items-center">
+            <div class="col-sm-6"><div class="text-muted small mb-1">Predicted traffic volume</div>
+              <div class="result-volume"><span id="rVol">–</span> <small>vehicles / hour</small></div>
+              <div class="mt-2" id="rCat"></div></div>
+            <div class="col-sm-6"><div class="text-muted small mb-1">Traffic intensity <span id="rPct"></span></div>
+              <div class="meter"><span id="rMeter"></span></div>
+              <div class="meter-scale"><span>Quiet</span><span>Busy</span></div>
+              <div class="lane" id="rLane"></div></div>
+          </div>
+          <div class="reco mt-3"><strong><i class="bi bi-signpost-2"></i> Recommendation</strong><div id="rReco" class="mt-1"></div></div>
+          <div class="mt-3"><div class="d-flex justify-content-between align-items-baseline"><strong class="small">Forecast for the whole day</strong><span class="hint m-0" id="rPeak"></span></div>
+            <div class="chart-box short"><canvas id="chDay"></canvas></div></div>
+          <div class="hint mt-2" id="rAssume"></div>
+          <div id="rWarn"></div>
+        </div>
+        <div class="notice notice-info mt-3"><i class="bi bi-info-circle-fill"></i><div>{{ disclaimer }}
+          {% if model_ready %}<div class="mt-1">Thresholds (veh/h): Low &lt; {{ '{:,.0f}'.format(meta.thresholds['values'][0]) }} ≤ Moderate &lt; {{ '{:,.0f}'.format(meta.thresholds['values'][1]) }} ≤ High &lt; {{ '{:,.0f}'.format(meta.thresholds['values'][2]) }} ≤ Severe ({{ meta.thresholds['source'] }}).</div>{% endif %}</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/prediction.js') }}"></script>{% endblock %}

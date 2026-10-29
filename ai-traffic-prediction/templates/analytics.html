@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Analytics{% endblock %}
+{% block content %}
+<div class="page-head"><h2>Traffic analytics</h2><p>Explore historical patterns. Every chart and number below responds to the filters.</p></div>
+{% if not opts %}
+<div class="notice notice-err"><i class="bi bi-x-octagon-fill"></i><div>The dataset was not found. Put a CSV at <code>data/traffic.csv</code> or run <code>python src/train_model.py</code>.</div></div>
+{% else %}
+<form class="card-x mb-3" id="filters" novalidate>
+  <div class="card-body-x pt-3">
+    <div class="row g-3 align-items-end">
+      <div class="col-6 col-md-3 col-xl-2"><label class="form-label" for="a_start">From date</label><input type="date" class="form-control" id="a_start" name="start" min="{{ opts.date_min }}" max="{{ opts.date_max }}" value="{{ opts.date_min }}"></div>
+      <div class="col-6 col-md-3 col-xl-2"><label class="form-label" for="a_end">To date</label><input type="date" class="form-control" id="a_end" name="end" min="{{ opts.date_min }}" max="{{ opts.date_max }}" value="{{ opts.date_max }}"></div>
+      <div class="col-6 col-md-3 col-xl-2"><label class="form-label" for="a_hf">From hour</label>
+        <select class="form-select" id="a_hf" name="hour_from">{% for h in range(24) %}<option value="{{ h }}">{{ '%02d:00'|format(h) }}</option>{% endfor %}</select></div>
+      <div class="col-6 col-md-3 col-xl-2"><label class="form-label" for="a_ht">To hour</label>
+        <select class="form-select" id="a_ht" name="hour_to">{% for h in range(24) %}<option value="{{ h }}" {{ 'selected' if h == 23 }}>{{ '%02d:00'|format(h) }}</option>{% endfor %}</select></div>
+      <div class="col-6 col-md-3 col-xl-2"><label class="form-label" for="a_dt">Day type</label>
+        <select class="form-select" id="a_dt" name="day_type"><option value="all">All days</option><option value="weekday">Weekdays</option><option value="weekend">Weekends</option><option value="holiday">Holidays</option></select></div>
+      {% if opts.has_weather %}
+      <div class="col-6 col-md-3 col-xl-2"><label class="form-label" for="a_w">Weather</label>
+        <select class="form-select" id="a_w" name="weather"><option value="">Any</option>{% for w in opts.weather %}<option>{{ w }}</option>{% endfor %}</select></div>
+      {% endif %}
+      <div class="col-12 d-flex flex-wrap gap-2">
+        <button class="btn btn-primary" type="submit"><i class="bi bi-funnel me-1"></i>Apply filters</button>
+        <button class="btn btn-soft" type="button" id="resetBtn">Reset</button>
+        <a class="btn btn-soft ms-md-auto" id="reportBtn" href="#"><i class="bi bi-download me-1"></i>Download report (CSV)</a>
+      </div>
+    </div>
+    <div id="filterError" class="mt-2"></div>
+  </div>
+</form>
+
+<div id="anaEmpty" class="notice notice-warn mb-3" style="display:none"><i class="bi bi-funnel"></i><div id="anaEmptyMsg"></div></div>
+<div id="anaBody">
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-xl-3"><div class="card-x kpi"><div class="label"><i class="bi bi-table ico-blue"></i>Records matched</div><div class="value" id="aRows">–</div><div class="note" id="aPeriod">&nbsp;</div></div></div>
+    <div class="col-6 col-xl-3"><div class="card-x kpi"><div class="label"><i class="bi bi-bar-chart ico-teal"></i>Average volume</div><div class="value" id="aAvg">–<small> veh/h</small></div><div class="note" id="aMax">&nbsp;</div></div></div>
+    <div class="col-6 col-xl-3"><div class="card-x kpi"><div class="label"><i class="bi bi-alarm ico-orange"></i>Peak hours</div><div class="value" id="aPeak" style="font-size:1.35rem">–</div><div class="note" id="aPeakAvg">&nbsp;</div></div></div>
+    <div class="col-6 col-xl-3"><div class="card-x kpi"><div class="label"><i class="bi bi-calendar-week ico-purple"></i>Weekday vs weekend</div><div class="value" id="aWW" style="font-size:1.35rem">–</div><div class="note">Average veh/h</div></div></div>
+  </div>
+  <div class="row g-3 mb-3">
+    <div class="col-xl-7"><div class="card-x h-100"><div class="card-head"><div><h3>Hourly traffic</h3><div class="sub">Average with 25th-75th percentile band</div></div></div><div class="card-body-x"><div class="chart-box"><canvas id="cHour"></canvas></div></div></div></div>
+    <div class="col-xl-5"><div class="card-x h-100"><div class="card-head"><div><h3>Weekday vs weekend</h3><div class="sub">Average volume by hour</div></div></div><div class="card-body-x"><div class="chart-box"><canvas id="cWW"></canvas></div></div></div></div>
+  </div>
+  <div class="row g-3 mb-3">
+    <div class="col-xl-8"><div class="card-x h-100"><div class="card-head"><div><h3 id="tDaily">Daily trend</h3><div class="sub">Average hourly volume over the selected period</div></div></div><div class="card-body-x"><div class="chart-box"><canvas id="cDaily"></canvas></div></div></div></div>
+    <div class="col-xl-4"><div class="card-x h-100"><div class="card-head"><div><h3>By day of week</h3><div class="sub">Average volume</div></div></div><div class="card-body-x"><div class="chart-box"><canvas id="cDow"></canvas></div></div></div></div>
+  </div>
+  <div class="row g-3 mb-3">
+    <div class="col-xl-6"><div class="card-x h-100"><div class="card-head"><div><h3>Monthly trend</h3><div class="sub">Average volume per calendar month</div></div></div><div class="card-body-x"><div class="chart-box short"><canvas id="cMonth"></canvas></div></div></div></div>
+    <div class="col-xl-6"><div class="card-x h-100"><div class="card-head"><div><h3>Seasonality</h3><div class="sub">Average volume by month of the year</div></div></div><div class="card-body-x"><div class="chart-box short"><canvas id="cMoy"></canvas></div></div></div></div>
+  </div>
+  <div class="row g-3">
+    {% if opts.has_weather %}
+    <div class="col-xl-8"><div class="card-x h-100"><div class="card-head"><div><h3>Weather vs traffic</h3><div class="sub">Average volume by weather condition (conditions with ≥20 records)</div></div></div><div class="card-body-x"><div class="chart-box"><canvas id="cWeather"></canvas></div></div></div></div>
+    {% endif %}
+    <div class="{{ 'col-xl-4' if opts.has_weather else 'col-12' }}"><div class="card-x h-100"><div class="card-head"><div><h3>Congestion categories</h3><div class="sub">Share of matched hours</div></div></div><div class="card-body-x"><div class="chart-box"><canvas id="cCong"></canvas></div></div></div></div>
+  </div>
+  <p class="hint mt-3">Historical data{% if synthetic %} - <strong>synthetic sample data</strong>{% endif %}. Not live traffic. {{ disclaimer }}</p>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}{% if opts %}<script>window.ANA_DEFAULTS = {{ {'start': opts.date_min, 'end': opts.date_max}|tojson }};</script>
+<script src="{{ url_for('static', filename='js/analytics.js') }}"></script>{% endif %}{% endblock %}
